@@ -3,7 +3,7 @@ import re
 from xml.dom.minidom import Document
 from datetime import datetime, date
 from decimal import Decimal, ROUND_DOWN
-from xmli import xmldsig
+from pyxmli import xmldsig
 
 
 try:
