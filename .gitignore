@@ -4,3 +4,6 @@
 *.notes
 *.pyc
 tests/
+build/
+dist/
+*.egg-info/
