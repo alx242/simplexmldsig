@@ -1,9 +1,18 @@
 # -*- coding: utf-8 -*-
+__all__ = ('VERSION', 'CURRENCIES', 'INVOICE_DUE', 'INVOICE_CANCELED',
+           'INVOICE_PAID', 'INVOICE_IRRECOVERABLE', 'UNITS', 'RATE_TYPE_FIXED',
+           'RATE_TYPE_PERCENTAGE', 'COUNTRIES', 'PAYMENT_METHOD_OTHER',
+           'PAYMENT_METHOD_CARD', 'PAYMENT_METHOD_CHEQUE',
+           'PAYMENT_METHOD_CASH', 'Interval', 'Address', 'Contact', 'Shipping',
+           'Invoice', 'Payments', 'Group', 'Line', 'Discount', 'Tax',)
+
+
 import re
 from xml.dom.minidom import Document
-from datetime import datetime, date
+from datetime import datetime, date, time
 from decimal import Decimal, ROUND_DOWN
 from pyxmli import xmldsig
+from pyxmli import version as PYXMLI_VERSION
 
 
 try:
@@ -15,9 +24,8 @@ except ImportError:
 INFINITY = Decimal('inf')
 ZERO = Decimal(0)
 SIGNIFICANCE_EXPONENT = Decimal(10) ** -5  # 0.00001
-MAX_LENGTH = 100
-VERSION = "2.0"
-AGENT = "PyXMLi %s" % VERSION
+VERSION = '2.0'
+AGENT = "PyXMLi %s" % PYXMLI_VERSION.VERSION
 CURRENCIES = ['AED', 'ALL', 'ANG', 'ARS', 'AUD', 'AWG', 'BBD', 'BDT', 'BGN',
               'BHD', 'BIF', 'BMD', 'BND', 'BOB', 'BRL', 'BTN', 'BWP', 'BYR',
               'BZD', 'CAD', 'CHF', 'CLP', 'CNY', 'COP', 'CRC', 'CUP', 'CVE',
@@ -35,6 +43,7 @@ CURRENCIES = ['AED', 'ALL', 'ANG', 'ARS', 'AUD', 'AWG', 'BBD', 'BDT', 'BGN',
               'TTD', 'TWD', 'TZS', 'UAH', 'UGX', 'USD', 'UYU', 'VEB', 'VND',
               'VUV', 'WST', 'XAF', 'XAG', 'XCD', 'XCP', 'XOF', 'XPD', 'XPF',
               'XPT', 'YER', 'ZAR', 'ZMK', 'ZWD']
+INVOICE_PAID = 'paid'
 INVOICE_DUE = "due"
 INVOICE_CANCELED = "canceled"
 INVOICE_IRRECOVERABLE = "irrecoverable"
@@ -122,6 +131,16 @@ def is_empty_or_none(s):
         return len(s) == 0
     except:
         return False
+    
+    
+def date_to_datetime(d):
+    '''
+    date to datetime conversion.
+    '''
+    if isinstance(d, datetime):
+        return d
+    
+    return datetime.combine(d, time()) 
 
 
 def datetime_to_string(d):
@@ -545,7 +564,8 @@ class Invoice(ExtensibleXMLiElement):
         Sets the status of the invoice.
         @param value:str
         '''
-        if value not in [INVOICE_DUE, INVOICE_CANCELED, INVOICE_IRRECOVERABLE]:
+        if value not in [INVOICE_DUE, INVOICE_PAID, INVOICE_CANCELED,
+                         INVOICE_IRRECOVERABLE]:
             raise ValueError("Invalid invoice status")
 
         self.__status = value
@@ -555,7 +575,8 @@ class Invoice(ExtensibleXMLiElement):
         Sets the invoice date.
         @param value:datetime
         '''
-        if value > date.today():
+        value = date_to_datetime(value)
+        if value > datetime.now():
             raise ValueError("Date cannot be in the future.")
 
         if self.__due_date and value.date() > self.__due_date:
@@ -568,6 +589,10 @@ class Invoice(ExtensibleXMLiElement):
         Sets the due date of the invoice.
         @param value:date
         '''
+        if not isinstance(value, date):
+            raise ValueError('Due date must be an instance of date.')
+            
+        value  = date_to_datetime(value)
         if self.__date and value < self.__date:
             raise ValueError("Due date cannot be anterior to the invoice date.")
 
@@ -598,6 +623,14 @@ class Invoice(ExtensibleXMLiElement):
         @return: Decimal
         '''
         return sum([group.total_taxes for group in self.__groups])
+    
+    @property
+    def remaining(self):
+        '''
+        Gets the total remaining of the invoice.
+        @returns: Decimal
+        '''
+        return self.total - sum([payment.amount for payment in self.payments])
 
     @property
     def total(self):
@@ -621,13 +654,28 @@ class Invoice(ExtensibleXMLiElement):
         '''
         if not len(self.groups):
             raise Exception("An invoice must at least have one group.")
-
+        
         for n, v in { "name": self.name, "currency": self.currency,
                      "seller": self.seller, "buyer":self.buyer,
                      "status": self.status, "date": self.date,
                      "due_date": self.due_date}.items():
             if is_empty_or_none(v):
                 raise ValueError("'%s' attribute cannot be empty or None." % n)
+        
+        total_invoice = self.total
+        total_payments = sum([payment.amount for payment in self.payments])
+        if total_payments > total_invoice:
+            raise Exception('The sum of the payments declared (%f %s) ' \
+                            'can\'t be superior to the total of ' \
+                            'the invoice (%f %s).' %
+                            (total_payments, self.currency, total_invoice,
+                             self.currency))
+        if self.status == INVOICE_PAID and total_payments < total_invoice:
+            raise Exception('The invoice can only be marked as paid if ' \
+                            'the sum of its payments (%f %s) is equal to its ' \
+                            'total (%f %s).' % 
+                            (total_payments, self.currency, total_invoice,
+                             self.currency))
 
         doc = Document()
         root = doc.createElement("invoice")
@@ -649,16 +697,11 @@ class Invoice(ExtensibleXMLiElement):
         self._create_text_node(root, "customId", self.custom_id, True)
         self._create_text_node(root, "terms", self.terms, True)
         self._create_text_node(root, "mentions", self.legal_mentions, True)
-        self._create_text_node(root, "total", self.total)
+        self._create_text_node(root, "total", total_invoice)
         
         if len(self.__payments):
             payments = doc.createElement("payments")
             for payment in self.__payments:
-                if not issubclass(payment.__class__, Payment):
-                    raise Exception('payment of type %s is not an instance ' /
-                                    'or a subclass of %s' % 
-                                    (payment.__class__.__name__, 
-                                     Payment.__name__))
                 payments.appendChild(payment.to_xml())
             root.appendChild(payments)
 
@@ -678,14 +721,24 @@ class Invoice(ExtensibleXMLiElement):
         super(Invoice, self).to_xml(body)
         return root
     
-    def to_signed_str(self, private, public):
+    def to_signed_str(self, private, public, passphrase=None):
         '''
         Returns a signed version of the invoice.
-        @param private:basestrign Private key
-        @param public:basestrign Public key
+        @param private:basestring Private key
+        @param public:basestring Public key
         @return: str
         '''
-        return xmldsig.sign(to_byte_string(self.to_string()), private, public)
+        try:
+            from Crypto.PublicKey import RSA
+        except ImportError:
+            raise ImportError('PyCrypto 2.5 module is required to enable ' \
+                              'XMLi signing. Please visit:\n' \
+                              'http://pycrypto.sourceforge.net/')
+            
+        private = RSA.importKey(private.read(), passphrase=passphrase)
+        public = RSA.importKey(public.read())
+        return to_unicode(xmldsig.sign(to_byte_string(self.to_string()),
+                                       private, public))
     
 
 class Payment(XMLiElement):
@@ -749,7 +802,6 @@ class Payment(XMLiElement):
         self._create_text_node(root, "date", self.date)
         self._create_text_node(root, "method", self.method)
         self._create_text_node(root, "ref", self.ref, True)
-        super(Payment, self).to_xml(root)
         return root
 
 
