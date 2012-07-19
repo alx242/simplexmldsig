@@ -29,12 +29,11 @@ invoice = Invoice(name="Online shopping on Guitar Heroes Store",
 
 #Seller
 invoice.seller.name = "Guitar Heroes Store"
-invoice.seller.email = "guitar@guitar-heroes-store.com"
-invoice.seller.address = Address(street_address="E Riverside Dr",
-                                city="Austin",
-                                state='TX',
-                                zipcode="78704",
-                                country="US")
+invoice.seller.email = "contact@guitar-heroes-store.com"
+invoice.seller.address = Address(street_address="Boulevard du Lido",
+                                 city="Casablanca",
+                                 zipcode="20100",
+                                 country="MA")
 
 #Billing contact and address
 invoice.buyer.name = "Stevie Ray Vaughan"
@@ -76,7 +75,7 @@ promo_code = Discount(name='Promo Code',
                       rate=30,
                       rate_type=RATE_TYPE_FIXED)
 
-#Define a Tax instance that we'll attach to one or many lines of the invoice.  
+#Define a Tax instance that we'll attach to one or many invoice lines  
 vat = Tax(name='VAT',
           description="Sales Tax",
           rate=8.25,
@@ -97,14 +96,14 @@ group.lines.append(Line(name="Dunlop JH1B wah-wah pedal",
                         'wah solos from the late 60s.',
                         quantity=1, unit_price=129.99))
 
-#Attach the desired tax and discount instances to the newly created line 
+#Attach taxes and discounts to lines 
 for line in group.lines:
     line.taxes.append(vat)
     line.discounts.append(promo_code)
     
 invoice.payments.append(Payment(amount=invoice.total,))
 
-#Generate keys with 'ssh-keygen -t rsa -b 1024'
+#Sign the invoice using RSA encryption keys ('ssh-keygen -t rsa -b 1024')
 keys_dir = os.path.join(os.path.dirname(__file__), 'tests')
 print invoice.to_signed_str(open(os.path.join(keys_dir, 'id_rsa'), 'rb'), 
                             open(os.path.join(keys_dir, 'id_rsa.pub'), 'rb'))
