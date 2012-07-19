@@ -161,6 +161,26 @@ def date_to_string(d):
     return d.strftime("%Y-%m-%d%z")
 
 
+class InvoiceException(Exception):
+    pass
+
+
+class GroupException(Exception):
+    pass
+
+
+class PaymentException(Exception):
+    pass
+
+
+class LineException(Exception):
+    pass
+
+
+class TreatmentException(Exception):
+    pass
+
+
 class XMLiElement(object):
     '''
     Represents an XMLi element.
@@ -194,6 +214,12 @@ class XMLiElement(object):
             tag.appendChild(root.ownerDocument.createTextNode(value))
 
         return root.appendChild(tag)
+    
+    def duplicate(self):
+        '''
+        Returns a copy of the current XMLiElement.
+        '''
+        raise NotImplementedError('Not Implemented')
 
     def to_xml(self):
         '''
@@ -376,6 +402,15 @@ class Address(XMLiElement):
         self.__country = value
 
     country = property(lambda self: self.__country, __set_country)
+    
+    def duplicate(self):
+        '''
+        Returns a copy of the current address.
+        @returns: Address
+        '''
+        return self.__class__(street_address=self.street_address,
+                              city=self.city, zipcode=self.zipcode,
+                              state=self.state, country=self.country)
 
     def to_xml(self, name="address"):
         '''
@@ -414,7 +449,8 @@ class Contact(XMLiElement):
         self.__require_email = require_email
         self.name = name
         self.__email = None
-        if email: self.email = email
+        if email:
+            self.email = email
         self.address = address
 
     def __set_email(self, value):
@@ -428,6 +464,15 @@ class Contact(XMLiElement):
         self.__email = value
 
     email = property(lambda self: self.__email, __set_email)
+    
+    def duplicate(self):
+        '''
+        Returns a copy of the current contact element.
+        @returns: Contact
+        '''
+        return self.__class__(name=self.name, email=self.email,
+                              require_email=self.__require_email,
+                              address=self.address.duplicate())
 
     def to_xml(self, tag_name="buyer"):
         '''
@@ -594,7 +639,8 @@ class Invoice(ExtensibleXMLiElement):
             
         value  = date_to_datetime(value)
         if self.__date and value < self.__date:
-            raise ValueError("Due date cannot be anterior to the invoice date.")
+            raise ValueError("Due date cannot be anterior to the invoice " \
+                             "date.")
 
         self.__due_date = value
 
@@ -646,6 +692,27 @@ class Invoice(ExtensibleXMLiElement):
     currency = property(lambda self: self.__currency, __set_currency)
     date = property(lambda self: self.__date, __set_date)
     due_date = property(lambda self: self.__due_date, __set_due_date)
+    
+    def duplicate(self):
+        '''
+        Returns a copy of the current group, including its lines.
+        @returns: Group
+        '''
+        instance = self.__class__(name=self.name, description=self.description,
+                                  currency=self.currency, status=self.status,
+                                  date=self.date, due_date=self.due_date,
+                                  custom_id=self.custom_id, terms=self.terms,
+                                  seller=self.seller.duplicate(),
+                                  buyer=self.buyer.duplicate(),
+                                  shipping=self.shipping.duplicate(),
+                                  legal_mentions=self.legal_mentions, 
+                                  disable_notification=self.disable_notification
+                                  )
+        for group in self.groups:
+            instance.groups.append(group.duplicate())
+        for payment in self.payments:
+            instance.payments.append(payment.duplicate())
+        return instance
 
     def to_xml(self):
         '''
@@ -653,29 +720,31 @@ class Invoice(ExtensibleXMLiElement):
         @return:Element
         '''
         if not len(self.groups):
-            raise Exception("An invoice must at least have one group.")
+            raise InvoiceException("An invoice must have at least one group " \
+                                   "of lines.")
         
         for n, v in { "name": self.name, "currency": self.currency,
                      "seller": self.seller, "buyer":self.buyer,
                      "status": self.status, "date": self.date,
                      "due_date": self.due_date}.items():
             if is_empty_or_none(v):
-                raise ValueError("'%s' attribute cannot be empty or None." % n)
+                raise InvoiceException("'%s' attribute cannot be empty or " \
+                                       "None." % n)
         
         total_invoice = self.total
         total_payments = sum([payment.amount for payment in self.payments])
         if total_payments > total_invoice:
-            raise Exception('The sum of the payments declared (%f %s) ' \
-                            'can\'t be superior to the total of ' \
-                            'the invoice (%f %s).' %
-                            (total_payments, self.currency, total_invoice,
-                             self.currency))
+            raise InvoiceException('The sum of the payments declared ' \
+                                   '(%f %s) can\'t be superior to the ' \
+                                   'total of the invoice (%f %s).' %
+                                   (total_payments, self.currency,
+                                    total_invoice, self.currency))
         if self.status == INVOICE_PAID and total_payments < total_invoice:
-            raise Exception('The invoice can only be marked as paid if ' \
-                            'the sum of its payments (%f %s) is equal to its ' \
-                            'total (%f %s).' % 
-                            (total_payments, self.currency, total_invoice,
-                             self.currency))
+            raise InvoiceException('The invoice can only be marked as paid ' \
+                                   'if the sum of its payments (%f %s) is ' \
+                                   'equal to its total (%f %s).' % 
+                                   (total_payments, self.currency,
+                                    total_invoice, self.currency))
 
         doc = Document()
         root = doc.createElement("invoice")
@@ -712,9 +781,10 @@ class Invoice(ExtensibleXMLiElement):
         body.appendChild(groups)
         for group in self.__groups:
             if not issubclass(group.__class__, Group):
-                raise Exception('group of type %s is not an instance ' /
-                                'or a subclass of %s' %
-                                (group.__class__.__name__, Group.__name__))
+                raise InvoiceException('group of type %s is not an instance ' \
+                                       'or a subclass of %s' %
+                                       (group.__class__.__name__,
+                                        Group.__name__))
             groups.appendChild(group.to_xml())
 
         #Adding custom elements
@@ -724,8 +794,9 @@ class Invoice(ExtensibleXMLiElement):
     def to_signed_str(self, private, public, passphrase=None):
         '''
         Returns a signed version of the invoice.
-        @param private:basestring Private key
-        @param public:basestring Public key
+        @param private:file Private key file-like object
+        @param public:file Public key file-like object
+        @param passphrase:str Private key passphrase if any.
         @return: str
         '''
         try:
@@ -751,7 +822,8 @@ class Payment(XMLiElement):
         Initializes a new instance of the Payment class.
         '''
         self.__amount = None
-        self.amount = amount
+        if amount:
+            self.amount = amount
         self.__method = method
         self.method = method
         self.ref = ref
@@ -763,7 +835,7 @@ class Payment(XMLiElement):
         @param value:float
         '''
         try:    
-            self.__amount = Decimal(value)
+            self.__amount = Decimal(str(value))
         except:
             raise ValueError('Invalid amount value')
         
@@ -791,11 +863,25 @@ class Payment(XMLiElement):
     method = property(lambda self: self.__method, __set_method)
     date = property(lambda self: self.__date, __set_date)
     
+    def duplicate(self):
+        '''
+        Returns a copy of the current group, including its lines.
+        @returns: Group
+        '''
+        return self.__class__(amount=self.amount, date=self.date,
+                              method=self.method, ref=self.ref)
+    
     def to_xml(self):
         '''
         Returns a DOM representation of the payment.
         @return: Element
         '''
+        for n, v in { "amount": self.amount, "date": self.date,
+                     "method":self.method}.items():
+            if is_empty_or_none(v):
+                raise PaymentException("'%s' attribute cannot be empty or " \
+                                       "None." % n)
+                
         doc = Document()
         root = doc.createElement("payment")
         self._create_text_node(root, "amount", self.amount)
@@ -851,6 +937,16 @@ class Group(ExtensibleXMLiElement):
         @return: Decimal
         '''
         return sum([line.total for line in self.__lines])
+    
+    def duplicate(self):
+        '''
+        Returns a copy of the current group, including its lines.
+        @returns: Group
+        '''
+        instance = self.__class__(name=self.name, description=self.description)
+        for line in self.lines:
+            instance.lines.append(line.duplicate())
+        return instance
 
     def to_xml(self):
         '''
@@ -858,7 +954,7 @@ class Group(ExtensibleXMLiElement):
         @return: Element
         '''
         if not len(self.lines):
-            raise Exception("A group must at least have one line.")
+            raise GroupException("A group must at least have one line.")
 
         doc = Document()
         root = doc.createElement("group")
@@ -869,9 +965,9 @@ class Group(ExtensibleXMLiElement):
         root.appendChild(lines)
         for line in self.__lines:
             if not issubclass(line.__class__, Line):
-                raise Exception('line of type %s is not an instance ' /
-                                'or a subclass of %s' %
-                                (line.__class__.__name__, Line.__name__))
+                raise GroupException('line of type %s is not an instance ' \
+                                     'or a subclass of %s' %
+                                     (line.__class__.__name__, Line.__name__))
             lines.appendChild(line.to_xml())
 
         super(Group, self).to_xml(root)
@@ -1002,6 +1098,21 @@ class Line(ExtensibleXMLiElement):
     unit = property(lambda self: self.__unit, __set_unit)
     quantity = property(lambda self: self.__quantity, __set_quantity)
     unit_price = property(lambda self: self.__unit_price, __set_unit_price)
+    
+    def duplicate(self):
+        '''
+        Returns a copy of the current Line, including its taxes and discounts
+        @returns: Line.
+        '''
+        instance = self.__class__(name=self.name, description=self.description,
+                                  unit=self.unit, quantity=self.quantity,
+                                  date=self.date, unit_price=self.unit_price,
+                                  gin=self.gin, gtin=self.gtin, sscc=self.sscc)
+        for tax in self.taxes:
+            instance.taxes.append(tax.duplicate())
+        for discount in self.discounts:
+            instance.discounts.append(discount.duplicate())
+        return instance
 
     def to_xml(self):
         '''
@@ -1011,7 +1122,8 @@ class Line(ExtensibleXMLiElement):
         for n, v in {"name": self.name, "quantity": self.quantity,
                      "unit_price": self.unit_price}.items():
             if is_empty_or_none(v):
-                raise ValueError("'%s' attribute cannot be empty or None." % n)
+                raise LineException("'%s' attribute cannot be empty or None." %
+                                    n)
 
         doc = Document()
         root = doc.createElement("line")
@@ -1030,8 +1142,8 @@ class Line(ExtensibleXMLiElement):
             root.appendChild(discounts)
             for discount in self.__discounts:
                 if not issubclass(discount.__class__, Discount):
-                    raise Exception('discount of type %s is not an instance ' /
-                                    'or a subclass of %s' %
+                    raise LineException('discount of type %s is not an ' \
+                                    'instance or a subclass of %s' %
                                     (discount.__class__.__name__, 
                                      Discount.__name__))
                 discounts.appendChild(discount.to_xml())
@@ -1041,9 +1153,9 @@ class Line(ExtensibleXMLiElement):
             root.appendChild(taxes)
             for tax in self.__taxes:
                 if not issubclass(tax.__class__, Tax):
-                    raise Exception('tax of type %s is not an instance ' /
-                                    'or a subclass of %s' %
-                                    (tax.__class__.__name__, Tax.__name__))
+                    raise LineException('tax of type %s is not an instance ' \
+                                        'or a subclass of %s' %
+                                        (tax.__class__.__name__, Tax.__name__))
                 taxes.appendChild(tax.to_xml())
 
         super(Line, self).to_xml(root)
@@ -1126,6 +1238,15 @@ class Treatment(XMLiElement):
     rate_type = property(lambda self: self.__rate_type, __set_rate_type)
     interval = property(lambda self: self.__interval, __set_interval)
     rate = property(lambda self: self.__rate, __set_rate)
+    
+    def duplicate(self):
+        '''
+        Returns a copy of the current treatment.
+        @returns: Treatment.
+        '''
+        return self.__class__(name=self.name, description=self.description,
+                              rate_type=self.rate_type, rate=self.rate,
+                              interval=self.interval)
 
     def compute(self, base):
         '''
@@ -1161,14 +1282,16 @@ class Treatment(XMLiElement):
                      "name": self.name,
                      "description": self.description}.items():
             if is_empty_or_none(v):
-                raise ValueError("'%s' attribute cannot be empty or None." % n)
+                raise TreatmentException("'%s' attribute cannot be empty " \
+                                         "or None." % n)
 
         doc = Document()
         root = doc.createElement(name)
         root.setAttribute("type", self.rate_type)
         root.setAttribute("name", to_byte_string(self.name))
         root.setAttribute("description", to_byte_string(self.description))
-        root.setAttribute("base", self.interval) if self.interval else ""
+        if self.interval:
+            root.setAttribute("base", self.interval) 
         root.appendChild(doc.createTextNode(to_byte_string(self.rate)))
         return root
 
