@@ -227,7 +227,7 @@ class XMLiElement(object):
         element.
         @return: Element
         '''
-        raise NotImplementedError()
+        raise NotImplementedError('Not implemented')
 
     def to_string(self, indent="", newl="", addindent=""):
         '''
