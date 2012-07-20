@@ -4,7 +4,9 @@ __all__ = ('VERSION', 'CURRENCIES', 'INVOICE_DUE', 'INVOICE_CANCELED',
            'RATE_TYPE_PERCENTAGE', 'COUNTRIES', 'PAYMENT_METHOD_OTHER',
            'PAYMENT_METHOD_CARD', 'PAYMENT_METHOD_CHEQUE',
            'PAYMENT_METHOD_CASH', 'Interval', 'Address', 'Contact', 'Shipping',
-           'Invoice', 'Payments', 'Group', 'Line', 'Discount', 'Tax',)
+           'Invoice', 'Payments', 'Group', 'Line', 'Discount', 'Tax',
+           'InvoiceException', 'GroupException', 'PaymentException',
+           'LineException', 'TreatmentException')
 
 
 import re
