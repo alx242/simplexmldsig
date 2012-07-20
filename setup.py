@@ -13,7 +13,7 @@ setup(
     packages            = ['pyxmli'],
     package_data        = {'pyxmli' : ['../VERSION']},
     install_requires    = ['pycrypto >= 2.5',
-                           'lxml <= 2.3'],
+                           'lxml >= 2.3'],
     url                 = 'http://github.com/Greendizer/PyXMLi',
     license             = open('LICENCE').read(),
     description         = 'Create and sign XMLi invoices in Python.',
