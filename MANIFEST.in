@@ -1,3 +1,2 @@
 include README.markdown LICENCE CONTRIBUTORS VERSION example.py
-recursive-include pyxmli/*
-recursive include tests/*
+recursive-include pyxmli/* tests/*
