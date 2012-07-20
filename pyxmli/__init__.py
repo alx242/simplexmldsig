@@ -82,7 +82,8 @@ PAYMENT_METHOD_CASH = 'cash'
 
 
 XML_NAMESPACE_PATTERN = re.compile(r'^(?P<prefix>\w+):' \
-                                   '(?P<uri>http(?:s)?:\/\/[a-z.-_]+)$')
+                                   '(?P<uri>http(?:s)?:\/\/[a-z.-_]+)$',
+                                   re.IGNORECASE)
 
 
 #django.core.validators
