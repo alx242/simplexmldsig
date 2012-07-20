@@ -85,9 +85,11 @@ XML_NAMESPACE_PATTERN = re.compile(r'^(?P<prefix>\w+):' \
                                    '(?P<uri>http(?:s)?:\/\/[a-z.-_]+)$')
 
 
-## {{{ http://code.activestate.com/recipes/65215/ (r5)
-EMAIL_PATTERN = re.compile('^.+\\@(\\[?)[a-zA-Z0-9\\-\\.]' \
-                           '+\\.([a-zA-Z]{2,3}|[0-9]{1,3})(\\]?)$')
+#django.core.validators
+EMAIL_PATTERN = re.compile(r"(^[-!#$%&'*+/=?^_`{}|~0-9A-Z]+(\.[-!#$%&'*+/=?^_`{}|~0-9A-Z]+)*"  # dot-atom
+                           r'|^"([\001-\010\013\014\016-\037!#-\[\]-\177]|\\[\001-011\013\014\016-\177])*"' # quoted-string
+                           r')@(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+[A-Z]{2,6}\.?$',
+                           re.IGNORECASE)
 
 
 def to_unicode(text):
