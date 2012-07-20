@@ -5,7 +5,7 @@ from pyxmli import (Invoice, Group, Line, Tax, Discount, Address, Payment,
                     INVOICE_PAID, RATE_TYPE_FIXED, RATE_TYPE_PERCENTAGE)
 
 '''
-XMLi is the format used to exchange invoices in Greendizer.
+XMLi is an open source invoice serialization format.
 PyXMLI attempts to reproduce its structure and the container pattern
 it's based on.
 

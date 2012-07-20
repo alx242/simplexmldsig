@@ -3,7 +3,7 @@ PyXMLi helps Python developers generate invoices in [XMLi 2.0](http://www.xmli.o
 ##Why another format?
 Simply because none of the available formats was good enough for what its creators needed it for.
 
-##Design goals:
+##Design goals
 -    Human-readable, *Web-friendly* format; 
 -    Carry data structures, not business logic;
 -    Stand-alone, with every detail possible from creation to archiving;
@@ -16,7 +16,7 @@ PyXMLi comes with a great deal of features to make it really easier for Python d
 -    Strongly validate pretty much every field locally before sending their invoices; 
 -    Sign their invoices using the XMLDsig standard and a simple RSA key.
 
-##Requirements:
+##Requirements
 
 -    Python 2.5+
 -    lxml 2.3+
