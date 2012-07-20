@@ -2,7 +2,7 @@ PyXMLi helps Python developers generate invoices in [XMLi 2.0](http://www.xmli.o
 
 
 ##Why another format?
-Simply because none of the available formats was good enough for what its creator needed it for.
+Simply because none of the available formats was good enough for what its creators needed it for.
 
 ##Design goals:
 -    Human-readable, *Web-friendly* format; 
