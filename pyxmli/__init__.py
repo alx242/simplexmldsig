@@ -11,10 +11,7 @@ import re
 from xml.dom.minidom import Document
 from datetime import datetime, date, time
 from decimal import Decimal, ROUND_DOWN
-from pyxmli import xmldsig
 from pyxmli import version as PYXMLI_VERSION
-
-
 try:
     from cStringIO import cStringIO as StringIO
 except ImportError:
@@ -802,6 +799,7 @@ class Invoice(ExtensibleXMLiElement):
         @param passphrase:str Private key passphrase if any.
         @return: str
         '''
+        from pyxmli import xmldsig
         try:
             from Crypto.PublicKey import RSA
         except ImportError:
@@ -809,10 +807,10 @@ class Invoice(ExtensibleXMLiElement):
                               'XMLi signing. Please visit:\n' \
                               'http://pycrypto.sourceforge.net/')
             
-        private = RSA.importKey(private.read(), passphrase=passphrase)
-        public = RSA.importKey(public.read())
         return to_unicode(xmldsig.sign(to_byte_string(self.to_string()),
-                                       private, public))
+                                       RSA.importKey(private.read(),
+                                                     passphrase=passphrase),
+                                       RSA.importKey(public.read())))
     
 
 class Payment(XMLiElement):
