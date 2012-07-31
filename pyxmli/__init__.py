@@ -704,7 +704,7 @@ class Invoice(ExtensibleXMLiElement):
                                   seller=self.seller.duplicate(),
                                   buyer=self.buyer.duplicate(),
                                   shipping=self.shipping.duplicate(),
-                                  legal_mentions=self.legal_mentions, 
+                                  mentions=self.legal_mentions, 
                                   )
         for group in self.groups:
             instance.groups.append(group.duplicate())
@@ -724,7 +724,8 @@ class Invoice(ExtensibleXMLiElement):
         for n, v in { "name": self.name, "currency": self.currency,
                      "seller": self.seller, "buyer":self.buyer,
                      "status": self.status, "date": self.date,
-                     "due_date": self.due_date}.items():
+                     "due_date": self.due_date,
+                     "mentions": self.mentions}.items():
             if is_empty_or_none(v):
                 raise InvoiceException("'%s' attribute cannot be empty or " \
                                        "None." % n)
@@ -763,7 +764,7 @@ class Invoice(ExtensibleXMLiElement):
         self._create_text_node(root, "dueDate", self.due_date)
         self._create_text_node(root, "customId", self.custom_id, True)
         self._create_text_node(root, "terms", self.terms, True)
-        self._create_text_node(root, "mentions", self.legal_mentions, True)
+        self._create_text_node(root, "mentions", self.mentions, True)
         self._create_text_node(root, "total", total_invoice)
         
         if len(self.__payments):
