@@ -534,7 +534,7 @@ class Invoice(ExtensibleXMLiElement):
     def __init__(self, name=None, description=None, currency=None,
                  status=INVOICE_DUE, date=date.today(), due_date=None,
                  custom_id=None, terms=None, seller=Contact(), buyer=Contact(),
-                 shipping=None, legal_mentions=None,):
+                 shipping=None, mentions=None,):
         '''
         Initializes a new instance of the Invoice class.
         @param name:str Invoice name.
@@ -548,7 +548,7 @@ class Invoice(ExtensibleXMLiElement):
         @param seller:Contact Sender of the invoice
         @param buyer:Contact Recipient of the invoice.
         @param shipping:Shipping Shipping details of the invoice.
-        @param legal_mentions:str Mandatory legal mentions on the invoice.
+        @param mentions:str Mandatory legal mentions on the invoice.
         sending a notification to a customer or not. 
         '''
         super(Invoice, self).__init__()
@@ -566,7 +566,7 @@ class Invoice(ExtensibleXMLiElement):
         self.terms = terms
         self.__groups = []
         self.__payments = []
-        self.legal_mentions = legal_mentions
+        self.mentions = mentions
 
     @property
     def groups(self):
@@ -704,7 +704,7 @@ class Invoice(ExtensibleXMLiElement):
                                   seller=self.seller.duplicate(),
                                   buyer=self.buyer.duplicate(),
                                   shipping=self.shipping.duplicate(),
-                                  mentions=self.legal_mentions, 
+                                  mentions=self.mentions, 
                                   )
         for group in self.groups:
             instance.groups.append(group.duplicate())
