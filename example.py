@@ -16,7 +16,8 @@ it's based on.
                 Discount
 '''
 
-invoice = Invoice(name="Online shopping on Guitar Heroes Store",
+invoice = Invoice(identifier='123',
+                  name="Online shopping on Guitar Heroes Store",
                   description="Perfect gears for a quick jam.",
                   currency="USD",
                   status=INVOICE_PAID,
@@ -26,7 +27,7 @@ invoice = Invoice(name="Online shopping on Guitar Heroes Store",
                   terms='All order changes or cancellations should be ' \
                   'reported prior to shipping and by phone on ' \
                   '1-555-555-5555. Email is not accepted.', #optional
-                  custom_id="FF123456")
+                  domain="greendizer.com")
 
 #Seller
 invoice.seller.name = "Guitar Heroes Store"
