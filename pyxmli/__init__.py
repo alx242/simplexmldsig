@@ -441,8 +441,8 @@ class Contact(ExtensibleXMLiElement):
         Sets the ID of the email
         @param value:str
         '''
-        if not is_empty_or_none(value):
-            raise ValueError("Invalid email address")
+        if is_empty_or_none(value):
+            raise ValueError("Invalid identifier")
 
         self.__identifier = value
 
