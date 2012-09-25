@@ -762,7 +762,6 @@ class Invoice(ExtensibleXMLiElement):
         self._create_text_node(root, "dueDate", self.due_date)
         self._create_text_node(root, "terms", self.terms, True)
         self._create_text_node(root, "mentions", self.mentions, True)
-        self._create_text_node(root, "total", total_invoice)
 
         if len(self.__payments):
             payments = doc.createElement("payments")
