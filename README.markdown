@@ -20,7 +20,7 @@ PyXMLi comes with a great deal of features to make it really easier for Python d
 
 -    Python 2.5+
 -    lxml 2.3+
--    PyCrypto 2.5+
+-    PyCrypto 2.6+
 
 (Built-in setup will install all the dependencies automatically).
 
