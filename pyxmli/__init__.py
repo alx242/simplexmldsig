@@ -8,7 +8,7 @@ __all__ = ('VERSION', 'CURRENCIES', 'INVOICE_DUE', 'INVOICE_CANCELED',
            'DELIVERY_METHOD_STATUS_CONFIRMED', 'PAYMENT_METHOD_CARD',
            'PAYMENT_METHOD_CHEQUE', 'PAYMENT_METHOD_CASH', 'Interval',
            'Address', 'Contact', 'Shipping', 'Invoice', 'DeliveryMethod', 
-           'Payments', 'Group', 'Line', 'Discount', 'Tax', 'InvoiceError',
+           'Payment', 'Group', 'Line', 'Discount', 'Tax', 'InvoiceError',
            'GroupError', 'DeliveryMethodError', 'PaymentError', 'LineError',
            'TreatmentError')
 
