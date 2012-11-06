@@ -2,7 +2,8 @@
 import os
 from datetime import datetime, date, timedelta
 from pyxmli import (Invoice, Group, Line, Tax, Discount, Address, Payment,
-                    INVOICE_PAID, RATE_TYPE_FIXED, RATE_TYPE_PERCENTAGE)
+                    DeliveryMethod, INVOICE_PAID, RATE_TYPE_FIXED,
+                    RATE_TYPE_PERCENTAGE, DELIVERY_METHOD_EMAIL)
 from pyxmli.xmldsig import verify
 
 '''
@@ -31,6 +32,7 @@ invoice = Invoice(identifier='123',
                   domain="greendizer.com")
 
 #Seller
+invoice.seller.identifier = '12345'
 invoice.seller.name = "Guitar Heroes Store"
 invoice.seller.email = "contact@guitar-heroes-store.com"
 invoice.seller.address = Address(street_address="Boulevard du Lido",
@@ -39,6 +41,7 @@ invoice.seller.address = Address(street_address="Boulevard du Lido",
                                  country="MA")
 
 #Billing contact and address
+invoice.buyer.identifier = '12345'
 invoice.buyer.name = "Stevie Ray Vaughan"
 invoice.buyer.email = "stevie@ray-vaughan.com"
 invoice.buyer.address = Address(street_address="E Riverside Dr",
@@ -105,6 +108,8 @@ for line in group.lines:
     line.discounts.append(promo_code)
     
 invoice.payments.append(Payment(amount=invoice.total,))
+
+invoice.deliveries.append(DeliveryMethod(method=DELIVERY_METHOD_EMAIL))
 
 #Sign the invoice using RSA encryption keys ('ssh-keygen -t rsa -b 1024')
 keys_dir = os.path.join(os.path.dirname(__file__), 'tests')
