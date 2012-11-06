@@ -446,7 +446,7 @@ class Contact(ExtensibleXMLiElement):
         @param value:str
         '''
         if is_empty_or_none(value):
-            raise ValueError("Invalid ID")
+            raise ValueError("Invalid identifier")
 
         self.__identifier = value
 
