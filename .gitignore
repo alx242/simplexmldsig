@@ -3,8 +3,6 @@
 .settings
 *.notes
 *.pyc
-build/
-dist/
 *.egg-info/
 MANIFEST
 Invoice_XMLi2.0.xml
