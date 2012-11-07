@@ -442,7 +442,7 @@ class Contact(ExtensibleXMLiElement):
 
     def __set_identifier(self, value):
         '''
-        Sets the ID of the email
+        Sets the ID of the contact
         @param value:str
         '''
         if is_empty_or_none(value):
