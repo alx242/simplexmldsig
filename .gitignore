@@ -1,8 +1,9 @@
 .project
 .pydevproject
-.settings
+/.settings/
 *.notes
 *.pyc
-*.egg-info/
+/*.egg-info/
+/dist/
 MANIFEST
 Invoice_XMLi2.0.xml
