@@ -158,27 +158,31 @@ def date_to_string(d):
     return d.strftime("%Y-%m-%d%z")
 
 
-class InvoiceError(Exception):
+class PyXMLiError(Exception):
     pass
 
 
-class GroupError(Exception):
+class InvoiceError(PyXMLiError):
     pass
 
 
-class DeliveryMethodException(Exception):
+class GroupError(PyXMLiError):
     pass
 
 
-class PaymentError(Exception):
+class DeliveryMethodException(PyXMLiError):
     pass
 
 
-class LineError(Exception):
+class PaymentError(PyXMLiError):
     pass
 
 
-class TreatmentException(Exception):
+class LineError(PyXMLiError):
+    pass
+
+
+class TreatmentException(PyXMLiError):
     pass
 
 
