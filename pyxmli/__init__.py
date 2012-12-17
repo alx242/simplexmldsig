@@ -983,8 +983,8 @@ class Payment(ExtensibleXMLiElement):
         root = doc.createElement("payment")
         super(Payment, self).to_xml(root)
         self._create_text_node(root, "amount", self.amount)
-        self._create_text_node(root, "reference", self.ref, True)
         self._create_text_node(root, "method", self.method)
+        self._create_text_node(root, "reference", self.ref, True)
         self._create_text_node(root, "date", self.date)
         return root
 
