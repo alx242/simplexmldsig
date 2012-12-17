@@ -550,12 +550,19 @@ class Invoice(ExtensibleXMLiElement):
         self.seller = seller
         self.buyer = buyer
         self.__shipping = shipping
-        self.name = name
-        self.description = description
-        self.currency = currency
+        self.__name = None
+        if name:
+            self.name = name
+        self.__description = None
+        if description:
+            self.description = description
+        self.__currency = None
+        if currency:
+            self.currency = currency
         self.status = status
         self.date = date
-        self.due_date = due_date or self.date
+        self.due_date = due_date or (self.date if type(self.date) == date else
+                                     date.date())
         self.terms = terms
         self.__deliveries = []
         self.__groups = []
