@@ -16,17 +16,36 @@ __all__ = ('VERSION', 'CURRENCIES', 'INVOICE_DUE', 'INVOICE_CANCELED',
 import re
 from xml.dom.minidom import Document
 from datetime import datetime, date, time
-from decimal import Decimal, ROUND_DOWN
+from decimal import (Decimal, getcontext, Context, ROUND_UP,
+                     DivisionByZero, InvalidOperation)
 from pyxmli import version as PYXMLI_VERSION
 try:
     from cStringIO import cStringIO as StringIO
 except ImportError:
     from StringIO import StringIO
-
+    
 
 INFINITY = Decimal('inf')
-ZERO = Decimal(0)
-SIGNIFICANCE_EXPONENT = Decimal(10) ** -5  # 0.00001
+ZERO = Decimal('0')
+SIGNIFICANCE_EXPONENT = Decimal(str(10**-5))
+
+'''
+Important note:
+PyXMLi rounds up line totals separately. This makes it easier for your customers
+to understand how you got to a total.
+'''
+
+def set_places(places):
+    '''Sets the number of decimals that should be used to compute totals'''
+    global SIGNIFICANCE_EXPONENT
+    SIGNIFICANCE_EXPONENT = Decimal(str(10**-places))
+        
+def quantize(d):
+    global SIGNIFICANCE_EXPONENT
+    print d.quantize(SIGNIFICANCE_EXPONENT, rounding=ROUND_UP)
+    return d.quantize(SIGNIFICANCE_EXPONENT, rounding=ROUND_UP)
+
+
 VERSION = '2.0'
 DEFAULT_NAMESPACE = 'http://xmli.org'
 AGENT = "PyXMLi %s" % PYXMLI_VERSION.VERSION
@@ -101,7 +120,7 @@ def to_unicode(text):
     '''
     Converts an input text to a unicode object.
     @param text:object Input text
-    @returns:unicode
+    @return: unicode
     '''
     return text.decode("UTF-8") if type(text) == str else unicode(text)
 
@@ -110,7 +129,7 @@ def to_byte_string(text):
     '''
     Converts an input text to a unicode object.
     @param text:object Input text
-    @returns:unicode
+    @return: unicode
     '''
     return text.encode("UTF-8") if type(text) == unicode else str(text)
 
@@ -144,7 +163,7 @@ def datetime_to_string(d):
     '''
     Gets a string representation of a datetime instance.
     @param date:datetime Datetime instance
-    @return:str
+    @return: str
     '''
     return d.strftime("%Y-%m-%dT%H:%M:%S%z")
 
@@ -153,7 +172,7 @@ def date_to_string(d):
     '''
     Gets a string representation of a datetime instance.
     @param date:datetime Datetime instance
-    @return:str
+    @return: str
     '''
     return d.strftime("%Y-%m-%d%z")
 
@@ -519,8 +538,12 @@ class Invoice(ExtensibleXMLiElement):
     '''
     Represents an Invoice object in the XMLi.
     '''
+    __identifier = None
     __date = None
     __due_date = None
+    __name = None
+    __description = None
+    __currency = None
 
     def __init__(self, identifier=None, name=None, description=None,
                  currency=None, status=INVOICE_DUE, date=date.today(),
@@ -544,19 +567,19 @@ class Invoice(ExtensibleXMLiElement):
         sending a notification to a customer or not. 
         '''
         super(Invoice, self).__init__()
-        self.__identifier = None
+        self.__deliveries = []
+        self.__groups = []
+        self.__payments = []
+        
         if identifier:
             self.identifier = identifier
         self.seller = seller
         self.buyer = buyer
         self.__shipping = shipping
-        self.__name = None
         if name:
             self.name = name
-        self.__description = None
         if description:
             self.description = description
-        self.__currency = None
         if currency:
             self.currency = currency
         self.status = status
@@ -564,9 +587,6 @@ class Invoice(ExtensibleXMLiElement):
         self.due_date = due_date or (self.date if type(self.date) == date else
                                      date.date())
         self.terms = terms
-        self.__deliveries = []
-        self.__groups = []
-        self.__payments = []
         self.mentions = mentions
         self.domain = domain
 
@@ -702,8 +722,7 @@ class Invoice(ExtensibleXMLiElement):
         Gets the total of the invoice.
         @return: Decimal
         '''
-        return ((sum([group.total for group in self.__groups]) or Decimal(0))
-                .quantize(SIGNIFICANCE_EXPONENT, rounding=ROUND_DOWN))
+        return quantize(sum([group.total for group in self.__groups])) or ZERO
 
     identifier = property(lambda self: self.__identifier, __set_identifier)
     name = property(lambda self: self.__name, __set_name)
@@ -1041,7 +1060,8 @@ class Group(ExtensibleXMLiElement):
         Gets the total of the group.
         @return: Decimal
         '''
-        return sum([line.total for line in self.__lines])
+        return quantize(sum([line.total for line in self.__lines]))
+
 
     def duplicate(self):
         '''
@@ -1197,7 +1217,7 @@ class Line(ExtensibleXMLiElement):
         Gets the total of the line.
         @return: Decimal
         '''
-        return self.gross + self.total_taxes - self.total_discounts
+        return quantize(self.gross + self.total_taxes - self.total_discounts)
 
     name = property(lambda self: self.__name, __set_name)
     unit = property(lambda self: self.__unit, __set_unit)
@@ -1363,16 +1383,15 @@ class Treatment(XMLiElement):
 
         if self.rate_type == RATE_TYPE_FIXED:
             if not self.interval or base >= self.interval.lower:
-                return self.rate
-            else:
-                return ZERO
+                return quantize(self.rate)
+            return ZERO
 
         if not self.interval:
-            return (base * self.rate / 100)
+            return quantize(base * self.rate / 100)
 
         if base > self.interval.lower:
-            return ((min(base, self.interval.upper) - self.interval.lower)
-                    * self.rate / 100)
+            base = min(base, self.interval.upper) - self.interval.lower
+            return quantize(base * self.rate / 100)
 
         return ZERO
 
