@@ -567,17 +567,16 @@ class Invoice(ExtensibleXMLiElement):
         self.__payments = []
 
         super(Invoice, self).__init__()
+        self.__shipping = shipping
         if identifier:
             self.identifier = identifier
-        self.seller = seller
-        self.buyer = buyer
-        self.__shipping = shipping
         if name:
             self.name = name
-        if description:
-            self.description = description
         if currency:
             self.currency = currency
+        self.seller = seller
+        self.buyer = buyer
+        self.description = description
         self.status = status
         self.date = date
         self.due_date = due_date or (self.date if type(self.date) == date else
