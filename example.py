@@ -1,14 +1,11 @@
 # -*- coding: utf-8 -*-
 import os
 from datetime import datetime, date, timedelta
-import pyxmli
 from pyxmli import (Invoice, Group, Line, Tax, Discount, Address, Payment,
                     DeliveryMethod, INVOICE_PAID, RATE_TYPE_FIXED,
                     RATE_TYPE_PERCENTAGE, DELIVERY_METHOD_EMAIL)
 from pyxmli.xmldsig import verify
 
-
-pyxmli.set_places(2) #Number of decimals to consider.
 
 
 '''

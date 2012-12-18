@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
-__all__ = ('set_places', 'CURRENCIES', 'INVOICE_DUE', 'INVOICE_CANCELED',
+__all__ = ('quantize', 'CURRENCIES', 'INVOICE_DUE', 'INVOICE_CANCELED',
            'INVOICE_PAID', 'INVOICE_IRRECOVERABLE', 'UNITS', 'RATE_TYPE_FIXED',
-           'RATE_TYPE_PERCENTAGE', 'COUNTRIES',  
+           'RATE_TYPE_PERCENTAGE', 'COUNTRIES',
            'DELIVERY_METHOD_EMAIL', 'DELIVERY_METHOD_SNAILMAIL',
            'DELIVERY_METHOD_SMS', 'DELIVERY_METHOD_STATUS_PENDING',
            'DELIVERY_METHOD_STATUS_SENT', 'DELIVERY_METHOD_STATUS_BOUNCED',
            'DELIVERY_METHOD_STATUS_CONFIRMED', 'PAYMENT_METHOD_CARD',
            'PAYMENT_METHOD_CHEQUE', 'PAYMENT_METHOD_CASH', 'Interval',
-           'Address', 'Contact', 'Shipping', 'Invoice', 'DeliveryMethod', 
+           'Address', 'Contact', 'Shipping', 'Invoice', 'DeliveryMethod',
            'Payment', 'Group', 'Line', 'Discount', 'Tax',
            'PyXMLiError', 'InvoiceError', 'GroupError', 'DeliveryMethodError',
            'PaymentError', 'LineError', 'TreatmentError')
@@ -16,34 +16,29 @@ __all__ = ('set_places', 'CURRENCIES', 'INVOICE_DUE', 'INVOICE_CANCELED',
 import re
 from xml.dom.minidom import Document
 from datetime import datetime, date, time
-from decimal import (Decimal, getcontext, Context, ROUND_UP,
+from decimal import (Decimal, getcontext, Context, ROUND_HALF_UP,
                      DivisionByZero, InvalidOperation)
 from pyxmli import version as PYXMLI_VERSION
 try:
     from cStringIO import cStringIO as StringIO
 except ImportError:
     from StringIO import StringIO
-    
+
 
 INFINITY = Decimal('inf')
 ZERO = Decimal('0')
-SIGNIFICANCE_EXPONENT = Decimal(str(10**-5))
+PRECISION = 2
 
 '''
 Important note:
 PyXMLi rounds up line totals separately. This makes it easier for your customers
 to understand how you got to a total.
 '''
-
-def set_places(places):
-    '''Sets the number of decimals that should be used to compute totals'''
-    global SIGNIFICANCE_EXPONENT
-    SIGNIFICANCE_EXPONENT = Decimal(str(10**-places))
-        
-def quantize(d):
-    global SIGNIFICANCE_EXPONENT
-    print d.quantize(SIGNIFICANCE_EXPONENT, rounding=ROUND_UP)
-    return d.quantize(SIGNIFICANCE_EXPONENT, rounding=ROUND_UP)
+def quantize(d, places=None):
+    global PRECISION
+    places = places or PRECISION
+    return d.quantize(Decimal(str(10 ** -abs(places))),
+                      rounding=ROUND_HALF_UP).normalize()
 
 
 XMLi_VERSION = '2.0'
@@ -98,9 +93,9 @@ COUNTRIES = ["AF", "AX", "AL", "DZ", "AS", "AD", "AO", "AI", "AQ", "AG", "AR",
              "TT", "TN", "TR", "TM", "TC", "TV", "UG", "UA", "AE", "GB", "US",
              "UM", "UY", "UZ", "VU", "VA", "VE", "VN", "VG", "VI", "WF", "YE",
              "ZM", "ZW"]
-DELIVERY_METHOD_EMAIL= 'email'
+DELIVERY_METHOD_EMAIL = 'email'
 DELIVERY_METHOD_SNAILMAIL = 'snailmail'
-DELIVERY_METHOD_SMS= 'sms'
+DELIVERY_METHOD_SMS = 'sms'
 DELIVERY_METHOD_STATUS_PENDING = 'pending'
 DELIVERY_METHOD_STATUS_SENT = 'sent'
 DELIVERY_METHOD_STATUS_BOUNCED = 'bounced'
@@ -538,17 +533,10 @@ class Invoice(ExtensibleXMLiElement):
     '''
     Represents an Invoice object in the XMLi.
     '''
-    __identifier = None
-    __date = None
-    __due_date = None
-    __name = None
-    __description = None
-    __currency = None
-
     def __init__(self, identifier=None, name=None, description=None,
                  currency=None, status=INVOICE_DUE, date=date.today(),
                  due_date=None, terms=None, seller=Contact(),
-                 buyer=Contact(), shipping=None, mentions=None, domain=None):
+                 buyer=Contact(), shipping=None, mentions=None, domain=None,):
         '''
         Initializes a new instance of the Invoice class.
         @param identifier:str Invoice ID
@@ -566,11 +554,17 @@ class Invoice(ExtensibleXMLiElement):
         @param domain:str Domain owning this invoice
         sending a notification to a customer or not. 
         '''
-        super(Invoice, self).__init__()
+        self.__identifier = None
+        self.__date = None
+        self.__due_date = None
+        self.__name = None
+        self.__description = None
+        self.__currency = None
         self.__deliveries = []
         self.__groups = []
         self.__payments = []
-        
+
+        super(Invoice, self).__init__()
         if identifier:
             self.identifier = identifier
         self.seller = seller
@@ -597,7 +591,7 @@ class Invoice(ExtensibleXMLiElement):
         @return: list
         '''
         return self.__groups
-    
+
     @property
     def deliveries(self):
         '''
@@ -622,7 +616,7 @@ class Invoice(ExtensibleXMLiElement):
         if not self.__shipping:
             self.__shipping = Shipping()
         return self.__shipping
-    
+
     def __set_identifier(self, value):
         '''
         Sets the ID of the invoice.
@@ -698,7 +692,16 @@ class Invoice(ExtensibleXMLiElement):
         Gets the total amount of discounts of the invoice.
         @return: Decimal
         '''
-        return sum([group.total_discounts for group in self.__groups])
+        return self.compute_discounts()
+
+    def compute_discounts(self, precision=None):
+        '''
+        Returns the total discounts of this group.
+        @param precision: int Number of decimals
+        @return: Decimal
+        '''
+        return sum([group.compute_discounts(precision) for group
+                    in self.__groups])
 
     @property
     def total_taxes(self):
@@ -706,15 +709,32 @@ class Invoice(ExtensibleXMLiElement):
         Gets the total amount of taxes of the invoice.
         @return: Decimal
         '''
-        return sum([group.total_taxes for group in self.__groups])
-        
+        return self.compute_taxes()
+
+    def compute_taxes(self, precision=None):
+        '''
+        Returns the total amount of taxes for this group.
+        @param precision: int Number of decimal places
+        @return: Decimal
+        '''
+        return sum([group.compute_taxes(precision) for group in self.__groups])
+
     @property
     def total_payments(self):
         '''
         Gets the total amount of payments of the invoice.
         @return: Decimal
         '''
-        return sum([payment.amount for payment in self.__payments])
+        return self.compute_payments()
+
+    def compute_payments(self, precision=None):
+        '''
+        Returns the total amount of payments made to this invoice.
+        @param precision:int Number of decimal places
+        @return: Decimal
+        '''
+        return quantize(sum([payment.amount for payment in self.__payments]),
+                        precision)
 
     @property
     def remaining(self):
@@ -722,7 +742,15 @@ class Invoice(ExtensibleXMLiElement):
         Gets the total remaining of the invoice.
         @returns: Decimal
         '''
-        return self.total - sum([payment.amount for payment in self.payments])
+        return self.compute_remainings()
+
+    def compute_remainings(self, precision=None):
+        '''
+        Gets the remaining of the invoice
+        @param precision: int Number of decimal places
+        @return: Decimal
+        '''
+        return self.compute_total(precision) - self.compute_payments(precision)
 
     @property
     def total(self):
@@ -730,7 +758,16 @@ class Invoice(ExtensibleXMLiElement):
         Gets the total of the invoice.
         @return: Decimal
         '''
-        return quantize(sum([group.total for group in self.__groups])) or ZERO
+        return self.compute_total()
+
+    def compute_total(self, precision=None):
+        '''
+        Gets the total of the invoice with a defined decimal precision
+        @param precision: int Number of decimal places
+        @return: Decimal
+        '''
+        return quantize(sum([group.compute_total(precision) for group
+                             in self.__groups]), places=precision) or ZERO
 
     identifier = property(lambda self: self.__identifier, __set_identifier)
     name = property(lambda self: self.__name, __set_name)
@@ -748,7 +785,7 @@ class Invoice(ExtensibleXMLiElement):
                                   name=self.name, description=self.description,
                                   currency=self.currency, status=self.status,
                                   date=self.date, due_date=self.due_date,
-                                  terms=self.terms, 
+                                  terms=self.terms,
                                   seller=self.seller.duplicate(),
                                   buyer=self.buyer.duplicate(),
                                   shipping=self.shipping.duplicate(),
@@ -759,7 +796,7 @@ class Invoice(ExtensibleXMLiElement):
             instance.deliveries.append(method.duplicate())
         for payment in self.payments:
             instance.payments.append(payment.duplicate())
-        
+
         return instance
 
     def to_xml(self):
@@ -771,7 +808,7 @@ class Invoice(ExtensibleXMLiElement):
             raise InvoiceError("An invoice must have at least one group " \
                                    "of lines.")
 
-        for n, v in {"identifier": self.identifier, 
+        for n, v in {"identifier": self.identifier,
                      "name": self.name, "currency": self.currency,
                      "seller": self.seller, "buyer":self.buyer,
                      "status": self.status, "date": self.date,
@@ -802,7 +839,7 @@ class Invoice(ExtensibleXMLiElement):
         root.setAttribute("domain", self.domain)
         root.setAttribute("version", XMLi_VERSION)
         root.setAttribute("agent", AGENT)
-        
+
         #Adding custom elements
         super(Invoice, self).to_xml(root)
 
@@ -825,7 +862,7 @@ class Invoice(ExtensibleXMLiElement):
             for payment in self.__payments:
                 payments.appendChild(payment.to_xml())
             root.appendChild(payments)
-            
+
         if len(self.deliveries):
             deliveries = doc.createElement('deliveries')
             for delivery in self.__deliveries:
@@ -867,8 +904,8 @@ class Invoice(ExtensibleXMLiElement):
                                        RSA.importKey(private.read(),
                                                      passphrase=passphrase),
                                        RSA.importKey(public.read())))
-        
-        
+
+
 class DeliveryMethod(ExtensibleXMLiElement):
     '''
     Represents an invoice deliveries method
@@ -881,7 +918,7 @@ class DeliveryMethod(ExtensibleXMLiElement):
         self.__status = status
         self.__date = date
         self.ref = ref
-        
+
     def __set_method(self, value):
         '''
         Sets the method to use.
@@ -890,9 +927,9 @@ class DeliveryMethod(ExtensibleXMLiElement):
         if value not in [DELIVERY_METHOD_EMAIL, DELIVERY_METHOD_SMS,
                          DELIVERY_METHOD_SNAILMAIL]:
             raise ValueError("Invalid deliveries method '%s'" % value)
-        
+
         self.__method = value
-    
+
     def __set_status(self, value):
         '''
         Sets the deliveries status of this method.
@@ -903,24 +940,24 @@ class DeliveryMethod(ExtensibleXMLiElement):
                          DELIVERY_METHOD_STATUS_CONFIRMED,
                          DELIVERY_METHOD_STATUS_BOUNCED]:
             raise ValueError("Invalid deliveries method status '%s'" % value)
-        
+
         self.__status = value
-    
+
     def __set_date(self, value):
         '''Sets at which the status changed for the last time.'''
         self.__date = value
-    
+
     method = property(lambda self: self.__method, __set_method)
     status = property(lambda self: self.__status, __set_status)
     date = property(lambda self: self.__date, __set_date)
-    
+
     def duplicate(self):
         '''
         Returns a copy of this deliveries method.
         @return: DeliveryMethod
         '''
         return self.__class__(self.method, self.status, self.date, self.ref)
-    
+
     def to_xml(self):
         '''
         Returns a DOM representation of the deliveries method
@@ -966,7 +1003,7 @@ class Payment(ExtensibleXMLiElement):
         @param value:float
         '''
         try:
-            self.__amount = Decimal(str(value))
+            self.__amount = quantize(Decimal(str(value)))
         except:
             raise ValueError('Invalid amount value')
 
@@ -1052,7 +1089,15 @@ class Group(ExtensibleXMLiElement):
         Gets the total amount of discounts of the group.
         @return: Decimal
         '''
-        return sum([line.total_discounts for line in self.__lines])
+        return self.compute_discounts()
+
+    def compute_discounts(self, precision=None):
+        '''
+        Returns the total amount of discounts of this group.
+        @param precision:int Total amount of discounts
+        @return: Decimal
+        '''
+        return sum([line.compute_discounts(precision) for line in self.__lines])
 
     @property
     def total_taxes(self):
@@ -1060,7 +1105,15 @@ class Group(ExtensibleXMLiElement):
         Gets the total amount of taxes of the group.
         @return: Decimal
         '''
-        return sum([line.total_taxes for line in self.__lines])
+        return self.compute_taxes()
+
+    def compute_taxes(self, precision=None):
+        '''
+        Returns the total amount of taxes of this group.
+        @param precision:int Total amount of discounts
+        @return: Decimal
+        '''
+        return sum([line.compute_taxes(precision) for line in self.__lines])
 
     @property
     def total(self):
@@ -1068,8 +1121,16 @@ class Group(ExtensibleXMLiElement):
         Gets the total of the group.
         @return: Decimal
         '''
-        return quantize(sum([line.total for line in self.__lines]))
+        return self.compute_total()
 
+    def compute_total(self, precision=None):
+        '''
+        Gets the total of the invoice with a defined decimal precision
+        @param precision: int Number of decimal places
+        @return: Decimal
+        '''
+        return quantize(sum([line.compute_total(precision) for line
+                             in self.__lines]), places=precision) or ZERO
 
     def duplicate(self):
         '''
@@ -1199,7 +1260,15 @@ class Line(ExtensibleXMLiElement):
         Gets the gross total
         @return: Decimal
         '''
-        return self.unit_price * self.quantity
+        return self.compute_gross()
+
+    def compute_gross(self, precision=None):
+        '''
+        Returns the gross total of the line with a specific number of decimals
+        @param precision: int number of decimal places
+        @return: Decimal
+        '''
+        return quantize(self.unit_price + self.quantity, precision)
 
     @property
     def total_discounts(self):
@@ -1207,8 +1276,18 @@ class Line(ExtensibleXMLiElement):
         Gets the total amount of discounts applied to the current line.
         @return: Decimal
         '''
-        return min(self.gross, sum([d.compute(self.gross)
-                                    for d in self.__discounts]))
+        return self.compute_discounts()
+
+    def compute_discounts(self, precision=None):
+        '''
+        Returns the total amount of discounts for this line with a specific
+        number of decimals.
+        @param precision:int number of decimal places
+        @return: Decimal
+        '''
+        gross = self.compute_gross(precision)
+        return min(gross,
+                   sum([d.compute(gross, precision) for d in self.__discounts]))
 
     @property
     def total_taxes(self):
@@ -1216,8 +1295,18 @@ class Line(ExtensibleXMLiElement):
         Gets the total amount of taxes applied to the current line.
         @return: Decimal
         '''
+        return self.compute_taxes()
+
+    def compute_taxes(self, precision=None):
+        '''
+        Returns the total amount of taxes for this line with a specific 
+        number of decimals
+        @param precision: int Number of decimal places
+        @return: Decimal
+        '''
         base = self.gross - self.total_discounts
-        return sum([t.compute(base) for t in self.__taxes])
+        return quantize(sum([t.compute(base, precision) for t in self.__taxes]),
+                        precision)
 
     @property
     def total(self):
@@ -1225,7 +1314,18 @@ class Line(ExtensibleXMLiElement):
         Gets the total of the line.
         @return: Decimal
         '''
-        return quantize(self.gross + self.total_taxes - self.total_discounts)
+        return self.compute_total()
+
+    def compute_total(self, precision=None):
+        '''
+        Gets the total of the invoice with a defined decimal precision
+        @param precision: int Number of decimal places
+        @return: Decimal
+        '''
+        return quantize((self.compute_gross(precision) +
+                        self.compute_taxes(precision) -
+                        self.compute_discounts(precision)),
+                        places=precision)
 
     name = property(lambda self: self.__name, __set_name)
     unit = property(lambda self: self.__unit, __set_unit)
@@ -1380,7 +1480,7 @@ class Treatment(XMLiElement):
                               rate_type=self.rate_type, rate=self.rate,
                               interval=self.interval)
 
-    def compute(self, base):
+    def compute(self, base, precision=None):
         '''
         Computes the amount of the treatment.
         @param base:float Gross
@@ -1391,15 +1491,15 @@ class Treatment(XMLiElement):
 
         if self.rate_type == RATE_TYPE_FIXED:
             if not self.interval or base >= self.interval.lower:
-                return quantize(self.rate)
+                return quantize(self.rate, precision)
             return ZERO
 
         if not self.interval:
-            return quantize(base * self.rate / 100)
+            return quantize(base * self.rate / 100, precision)
 
         if base > self.interval.lower:
             base = min(base, self.interval.upper) - self.interval.lower
-            return quantize(base * self.rate / 100)
+            return quantize(base * self.rate / 100, precision)
 
         return ZERO
 
@@ -1450,13 +1550,13 @@ class Discount(Treatment):
     '''
     Represents a discount.
     '''
-    def compute(self, base):
+    def compute(self, base, *args, **kwargs):
         '''
         Returns the value of the discount.
         @param base:float Computation base.
         @return: Decimal
         '''
-        return min(base, super(Discount, self).compute(base))
+        return min(base, super(Discount, self).compute(base, *args, **kwargs))
 
     def to_xml(self):
         '''
