@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-__all__ = ('VERSION', 'CURRENCIES', 'INVOICE_DUE', 'INVOICE_CANCELED',
+__all__ = ('set_places', 'CURRENCIES', 'INVOICE_DUE', 'INVOICE_CANCELED',
            'INVOICE_PAID', 'INVOICE_IRRECOVERABLE', 'UNITS', 'RATE_TYPE_FIXED',
            'RATE_TYPE_PERCENTAGE', 'COUNTRIES',  
            'DELIVERY_METHOD_EMAIL', 'DELIVERY_METHOD_SNAILMAIL',
@@ -8,9 +8,9 @@ __all__ = ('VERSION', 'CURRENCIES', 'INVOICE_DUE', 'INVOICE_CANCELED',
            'DELIVERY_METHOD_STATUS_CONFIRMED', 'PAYMENT_METHOD_CARD',
            'PAYMENT_METHOD_CHEQUE', 'PAYMENT_METHOD_CASH', 'Interval',
            'Address', 'Contact', 'Shipping', 'Invoice', 'DeliveryMethod', 
-           'Payment', 'Group', 'Line', 'Discount', 'Tax', 'InvoiceError',
-           'GroupError', 'DeliveryMethodError', 'PaymentError', 'LineError',
-           'TreatmentError')
+           'Payment', 'Group', 'Line', 'Discount', 'Tax',
+           'PyXMLiError', 'InvoiceError', 'GroupError', 'DeliveryMethodError',
+           'PaymentError', 'LineError', 'TreatmentError')
 
 
 import re
@@ -46,7 +46,7 @@ def quantize(d):
     return d.quantize(SIGNIFICANCE_EXPONENT, rounding=ROUND_UP)
 
 
-VERSION = '2.0'
+XMLi_VERSION = '2.0'
 DEFAULT_NAMESPACE = 'http://xmli.org'
 AGENT = "PyXMLi %s" % PYXMLI_VERSION.VERSION
 CURRENCIES = ['AED', 'ALL', 'ANG', 'ARS', 'AUD', 'AWG', 'BBD', 'BDT', 'BGN',
@@ -601,7 +601,7 @@ class Invoice(ExtensibleXMLiElement):
     @property
     def deliveries(self):
         '''
-        Gets the list of deliveries modes configured for this invoice.
+        Gets the list of delivery modes configured for this invoice.
         @return: list
         '''
         return self.__deliveries
@@ -707,6 +707,14 @@ class Invoice(ExtensibleXMLiElement):
         @return: Decimal
         '''
         return sum([group.total_taxes for group in self.__groups])
+        
+    @property
+    def total_payments(self):
+        '''
+        Gets the total amount of payments of the invoice.
+        @return: Decimal
+        '''
+        return sum([payment.amount for payment in self.__payments])
 
     @property
     def remaining(self):
@@ -792,7 +800,7 @@ class Invoice(ExtensibleXMLiElement):
         root = doc.createElement("invoice")
         root.setAttribute('xmlns', DEFAULT_NAMESPACE)
         root.setAttribute("domain", self.domain)
-        root.setAttribute("version", VERSION)
+        root.setAttribute("version", XMLi_VERSION)
         root.setAttribute("agent", AGENT)
         
         #Adding custom elements
