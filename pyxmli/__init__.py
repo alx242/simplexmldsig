@@ -1437,16 +1437,6 @@ class Treatment(XMLiElement):
 
         self.__name = value
 
-    def __set_description(self, value):
-        '''
-        Sets the name of the treatment.
-        @param value:str
-        '''
-        if not value or not len(value):
-            raise ValueError("Invalid description.")
-
-        self.__description = value
-
     def __set_rate_type(self, value):
         '''
         Sets the rate type.
@@ -1468,7 +1458,6 @@ class Treatment(XMLiElement):
             raise ValueError("invalid rate value.")
 
     name = property(lambda self: self.__name, __set_name)
-    description = property(lambda self: self.__description, __set_description)
     rate_type = property(lambda self: self.__rate_type, __set_rate_type)
     interval = property(lambda self: self.__interval, __set_interval)
     rate = property(lambda self: self.__rate, __set_rate)
