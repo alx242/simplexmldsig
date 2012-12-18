@@ -184,7 +184,7 @@ class GroupError(PyXMLiError):
     pass
 
 
-class DeliveryMethodException(PyXMLiError):
+class DeliveryMethodError(PyXMLiError):
     pass
 
 
@@ -196,7 +196,7 @@ class LineError(PyXMLiError):
     pass
 
 
-class TreatmentException(PyXMLiError):
+class TreatmentError(PyXMLiError):
     pass
 
 
