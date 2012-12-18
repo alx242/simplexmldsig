@@ -35,6 +35,8 @@ PyXMLi rounds up line totals separately. This makes it easier for your customers
 to understand how you got to a total.
 '''
 def quantize(d, places=None):
+    if type(d) != Decimal:
+        d = Decimal(str(d))
     global PRECISION
     places = places or PRECISION
     return d.quantize(Decimal(str(10 ** -abs(places))),
