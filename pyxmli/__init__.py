@@ -967,7 +967,7 @@ class DeliveryMethod(ExtensibleXMLiElement):
         for n, v in { "method": self.method, "status": self.status,
                      "date":self.date}.items():
             if is_empty_or_none(v):
-                raise DeliveryMethodException("'%s' attribute cannot be " \
+                raise DeliveryMethodError("'%s' attribute cannot be " \
                                        "empty or None." % n)
 
         doc = Document()
@@ -1269,7 +1269,7 @@ class Line(ExtensibleXMLiElement):
         @param precision: int number of decimal places
         @return: Decimal
         '''
-        return quantize(self.unit_price + self.quantity, precision)
+        return quantize(self.unit_price * self.quantity, precision)
 
     @property
     def total_discounts(self):
@@ -1503,7 +1503,7 @@ class Treatment(XMLiElement):
                      "name": self.name,
                      "description": self.description}.items():
             if is_empty_or_none(v):
-                raise TreatmentException("'%s' attribute cannot be empty " \
+                raise TreatmentError("'%s' attribute cannot be empty " \
                                          "or None." % n)
 
         doc = Document()
