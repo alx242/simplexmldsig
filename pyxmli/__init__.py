@@ -228,7 +228,7 @@ class XMLiElement(object):
             value = "0" if not value else str(value)
 
         tag = root.ownerDocument.createElement(name)
-        value = to_byte_string(value)
+        value = value.decode('utf-8')
         if cdata:
             tag.appendChild(root.ownerDocument.createCDATASection(value))
         else:
