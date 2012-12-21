@@ -57,7 +57,7 @@ def c14n(xml):
     output = StringIO()
     tree.write_c14n(output, exclusive=False, with_comments=True, compression=0)
     output.flush()
-    c14nized = output.getvalue().decode('utf-8')
+    c14nized = output.getvalue()
     output.close()
     return c14nized
 
@@ -70,7 +70,7 @@ def sign(xml, private, public):
     @param public: publicKey Public key
     @return str: signed XML byte string
     '''
-    xml = xml.encode('utf-8', 'xmlcharrefreplace')
+    xml = xml.decode('utf-8', 'xmlcharrefreplace')
     signed_info_xml = _generate_signed_info(xml)
 
     signer = PKCS1_v1_5.PKCS115_SigScheme(private)
