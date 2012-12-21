@@ -311,10 +311,10 @@ class ExtensibleXMLiElement(XMLiElement):
         @param uri:str Namespace URI
         @param tag:str Tag name.
         '''
-        tag = root.ownerDocument.createElementNS(to_byte_string(uri),
-                                                 to_byte_string(name))
+        tag = root.ownerDocument.createElementNS(to_unicode(uri),
+                                                 to_unicode(name))
         tag.appendChild(root.ownerDocument
-                        .createCDATASection(to_byte_string(value)))
+                        .createCDATASection(to_unicode(value)))
         return root.appendChild(tag)
 
     def to_xml(self, root):
@@ -907,7 +907,7 @@ class Invoice(ExtensibleXMLiElement):
         if not isinstance(public, RSA._RSAobj):
             public = RSA.importKey(public.read())
             
-        return to_unicode(xmldsig.sign(to_byte_string(self.to_string()),
+        return to_unicode(xmldsig.sign(to_unicode(self.to_string()),
                                        private, public))
 
 
@@ -1513,11 +1513,11 @@ class Treatment(XMLiElement):
         doc = Document()
         root = doc.createElement(name)
         root.setAttribute("type", self.rate_type)
-        root.setAttribute("name", to_byte_string(self.name))
-        root.setAttribute("description", to_byte_string(self.description))
+        root.setAttribute("name", to_unicode(self.name))
+        root.setAttribute("description", to_unicode(self.description))
         if self.interval:
             root.setAttribute("base", self.interval)
-        root.appendChild(doc.createTextNode(to_byte_string(self.rate)))
+        root.appendChild(doc.createTextNode(to_unicode(self.rate)))
         return root
 
 

@@ -70,7 +70,7 @@ def sign(xml, private, public):
     @param public: publicKey Public key
     @return str: signed XML byte string
     '''
-    xml = xml.decode('utf-8', 'xmlcharrefreplace')
+    xml = xml.encode('utf-8', 'xmlcharrefreplace')
     signed_info_xml = _generate_signed_info(xml)
 
     signer = PKCS1_v1_5.PKCS115_SigScheme(private)
