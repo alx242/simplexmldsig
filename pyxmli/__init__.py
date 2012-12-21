@@ -897,14 +897,18 @@ class Invoice(ExtensibleXMLiElement):
         try:
             from Crypto.PublicKey import RSA
         except ImportError:
-            raise ImportError('PyCrypto 2.5 module is required to enable ' \
-                              'XMLi signing. Please visit:\n' \
-                              'http://pycrypto.sourceforge.net/')
-
+            raise ImportError('PyCrypto 2.5 or more recent module is ' \
+                              'required to enable XMLi signing.\n' \
+                              'Please visit: http://pycrypto.sourceforge.net/')
+            
+        if not isinstance(private, RSA._RSAobj):
+            private = RSA.importKey(private.read(), passphrase=passphrase)
+        
+        if not isinstance(public, RSA._RSAobj):
+            public = RSA.importKey(public.read())
+            
         return to_unicode(xmldsig.sign(to_byte_string(self.to_string()),
-                                       RSA.importKey(private.read(),
-                                                     passphrase=passphrase),
-                                       RSA.importKey(public.read())))
+                                       private, public))
 
 
 class DeliveryMethod(ExtensibleXMLiElement):
