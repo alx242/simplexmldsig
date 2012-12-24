@@ -26,6 +26,15 @@ Requirements:
 Compatibility:
 PyXMLi is compatible with Google App Engine and their Python 2.7 runtime.
 
+Edit app.yaml to add pyCrypto and lxml to the list of third-party modules you'd like to use. 
+
+    libraries:
+    - name: pycrypto
+      version: 2.6
+    
+    - name: lxml
+      version: 2.3
+
 Setup:
 Using pip:
 
