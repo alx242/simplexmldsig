@@ -14,7 +14,7 @@ setup(
                            'lxml >= 2.3'],
     url                 = 'http://github.com/Greendizer/PyXMLi',
     license             = open('LICENCE').read(),
-    description         = 'Create XMLi 2.0 compliant invoices in Python.',
-    long_description    = open('README.markdown').read(),
+    description         = 'Create XMLi 2.0 compliant invoices in Python',
+    long_description    = open('README').read(),
     zip_safe            = True,
 )
