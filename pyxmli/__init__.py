@@ -1,4 +1,8 @@
 # -*- coding: utf-8 -*-
+__version_info__ = (2, 1, 5)
+__version__ = '.'.join(__version_info__)
+
+
 __all__ = ('quantize', 'CURRENCIES', 'INVOICE_DUE', 'INVOICE_CANCELED',
            'INVOICE_PAID', 'INVOICE_IRRECOVERABLE', 'UNITS', 'RATE_TYPE_FIXED',
            'RATE_TYPE_PERCENTAGE', 'COUNTRIES',
@@ -18,7 +22,6 @@ from xml.dom.minidom import Document
 from datetime import datetime, date, time
 from decimal import (Decimal, getcontext, Context, ROUND_HALF_UP,
                      DivisionByZero, InvalidOperation)
-from pyxmli import version as PYXMLI_VERSION
 try:
     from cStringIO import cStringIO as StringIO
 except ImportError:
@@ -45,7 +48,7 @@ def quantize(d, places=None):
 
 XMLi_VERSION = '2.0'
 DEFAULT_NAMESPACE = 'http://xmli.org'
-AGENT = "PyXMLi %s" % PYXMLI_VERSION.VERSION
+AGENT = "PyXMLi %s" % __version__
 CURRENCIES = ['AED', 'ALL', 'ANG', 'ARS', 'AUD', 'AWG', 'BBD', 'BDT', 'BGN',
               'BHD', 'BIF', 'BMD', 'BND', 'BOB', 'BRL', 'BTN', 'BWP', 'BYR',
               'BZD', 'CAD', 'CHF', 'CLP', 'CNY', 'COP', 'CRC', 'CUP', 'CVE',
