@@ -62,7 +62,7 @@ def c14n(xml):
     return c14nized
 
 
-def sign(xml, private, public, cert):
+def sign(xml, private, public, cert, sign_element='</s:Security>'):
     '''
     Return xmldsig XML string from xml_string of XML.
     @param xml: str of bytestring xml to sign
@@ -84,7 +84,7 @@ def sign(xml, private, public, cert):
                                                    cert)
     }
 
-    position = xml.rfind('</s:Security>')
+    position = xml.rfind(sign_element)
     return xml[0:position] + signature_xml + xml[position:]
 
 
