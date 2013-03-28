@@ -79,7 +79,9 @@ def sign(xml, private, public, cert):
     signature_xml = PTN_SIGNATURE_XML % {
         'signed_info_xml': signed_info_xml,
         'signature_value': binascii.b2a_base64(signature_value)[:-1],
-        'key_info_xml': _generate_key_info_xml_rsa(public.key.n, public.key.e, cert)
+        'key_info_xml': _generate_key_info_xml_rsa(public.key.n,
+                                                   public.key.e,
+                                                   cert)
     }
 
     position = xml.rfind('</s:Security>')
