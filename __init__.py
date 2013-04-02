@@ -29,8 +29,10 @@ KEY_INFO_PATH = 'xmldsig:KeyInfo/xmldsig:KeyValue/xmldsig:RSAKeyValue'
 NAMESPACES = {'xmli': 'http://xmli.org',
               'xmldsig': 'http://www.w3.org/2000/09/xmldsig#'}
 
+# PTN_SIGNED_INFO_XML = \
+#     '<SignedInfo xmlns="http://www.w3.org/2000/09/xmldsig#"><CanonicalizationMethod Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315#WithComments"></CanonicalizationMethod><SignatureMethod Algorithm="http://www.w3.org/2000/09/xmldsig#rsa-sha1"></SignatureMethod><Reference URI=""><Transforms><Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature"></Transform></Transforms><DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1"></DigestMethod><DigestValue>%(digest_value)s</DigestValue></Reference></SignedInfo>
 PTN_SIGNED_INFO_XML = \
-    '<SignedInfo xmlns="http://www.w3.org/2000/09/xmldsig#"><CanonicalizationMethod Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315#WithComments"></CanonicalizationMethod><SignatureMethod Algorithm="http://www.w3.org/2000/09/xmldsig#rsa-sha1"></SignatureMethod><Reference URI=""><Transforms><Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature"></Transform></Transforms><DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1"></DigestMethod><DigestValue>%(digest_value)s</DigestValue></Reference></SignedInfo>'
+    '<SignedInfo xmlns="http://www.w3.org/2000/09/xmldsig#"><CanonicalizationMethod Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#"></CanonicalizationMethod><SignatureMethod Algorithm="http://www.w3.org/2000/09/xmldsig#rsa-sha1"></SignatureMethod><Reference URI=""><Transforms><Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature"></Transform><Transform Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#"></Transform></Transforms><DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1"></DigestMethod><DigestValue>%(digest_value)s</DigestValue></Reference></SignedInfo>'
 PTN_SIGNATURE_XML = \
     '<Signature xmlns="http://www.w3.org/2000/09/xmldsig#">%(signed_info_xml)s<SignatureValue>%(signature_value)s</SignatureValue>%(key_info_xml)s</Signature>'
 PTN_KEY_INFO_RSA_KEY = \
@@ -55,7 +57,8 @@ def c14n(xml):
     '''
     tree = etree.parse(StringIO(xml))
     output = StringIO()
-    tree.write_c14n(output, exclusive=False, with_comments=True, compression=0)
+    # tree.write_c14n(output, exclusive=False, with_comments=True, compression=0)
+    tree.write_c14n(output, exclusive=1, with_comments=False, compression=0)
     output.flush()
     c14nized = output.getvalue()
     output.close()
