@@ -99,7 +99,8 @@ def verify(xml):
         from cStringIO import cStringIO as StringIO
     except ImportError:
         from StringIO import StringIO
-    xml = xml.encode('utf-8', 'xmlcharrefreplace')
+    if isinstance(xml, unicode):
+        xml = xml.encode('utf-8', 'xmlcharrefreplace')
     tree = etree.parse(StringIO(xml))
     try:
         '''Isolating the Signature element'''
